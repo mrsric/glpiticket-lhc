@@ -1,0 +1,1 @@
+<?php include(erLhcoreClassDesign::designtpl('lhglpiticket/ticket_url.tpl.php'));?>
