@@ -8,6 +8,7 @@ class erLhcoreClassExtensionGlpiticket
 
     public $configData = false;
     public $userId = '';
+    const URIAPI = '/apirest.php/';
 
     public function __construct()
     {
@@ -59,39 +60,102 @@ class erLhcoreClassExtensionGlpiticket
         }
     }
 
-    public function sendRequest($data)
+    public function getUriBase()
     {
         $this->getConfig();
+        return $this->configData['host'] . erLhcoreClassExtensionGlpiticket::URIAPI;
+    }
 
+    public function initCurlSessionPost($urlGlpi, $data, $sessionToken){        
+        
+        $ch = $this->initCurlSession($urlGlpi, $sessionToken);        
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+        return $ch;
+
+    }
+
+    public function initCurlSessionGet($urlGlpi, $sessionToken){        
+        
+        $ch = $this->initCurlSession($urlGlpi, $sessionToken);        
+        curl_setopt($ch, CURLOPT_HTTPGET, 1);
+        return $ch;
+
+    }
+
+    public function initCurlSession($urlGlpi, $sessionToken){
+
+        $ch = $this->initCurl($urlGlpi);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Expect:',
+            'Content-Type: ' . 'application/json',
+            'app_token: ' . $this->configData['app_token'],
+            'app-token: ' . $this->configData['app_token'],
+            'session_token: ' . $sessionToken,
+            'session-token: ' . $sessionToken
+        ));
+
+        return $ch;
+    }
+
+    public function initCurl($urlGlpi){
+
+        $this->getConfig();  
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $urlGlpi);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'GLPI API Client');
+        curl_setopt($ch, CURLOPT_HEADER, 0);       
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+        if ($this->configData['disable_ssl_verify'] == true) {
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        }        
+
+        return $ch;
+    }
+
+    public function execCurl($ch){
+
+        $result = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errors = curl_error($ch);
+        curl_close($ch);
+
+        $resultExec = array(
+            'result' => $result,
+            'code' => $code,
+            'errors' => $errors,
+        ); 
+
+        return $resultExec;
+    }
+
+    public function validateStatusCode($result, $msg){
+
+        if ($result['code'] != 200 && $result['code'] != 201) {
+            throw new Exception($msg . ' ' . $result['result']);
+        }
+    }
+
+    public function sendRequest($data)
+    {
         $sessionToken = $this->initSession();
 
         $replaceUserId = str_replace('{glpi_ticket_userid}', $this->userId, json_encode($data));
         $data = $replaceUserId;
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->configData['host'] . '/apirest.php/ticket');
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'GLPI API Client');
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Expect:',
-            'Content-Type: ' . 'application/json',
-            'app_token: ' . $this->configData['app_token'],
-            'session_token: ' . $sessionToken,
-            'session-token: ' . $sessionToken
-        ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-        $result = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $urlGlpi = $this->getUriBase() . 'Ticket';
 
-        if ($code != 200 && $code != 201) {
-            throw new Exception('Unable to create ticket: ' . $result);
-        }
+        $ch = $this->initCurlSessionPost($urlGlpi, $data, $sessionToken);   
+        $result = $this->execCurl($ch);
 
-        $ticket_id = json_decode($result)->id;
+        $this->validateStatusCode($result, 'Unable to create ticket:');
+
+        $ticket_id = json_decode($result['result'])->id;
 
         $this->killSession($sessionToken);
 
@@ -100,31 +164,15 @@ class erLhcoreClassExtensionGlpiticket
 
     public function addUserOnTicket($sessionToken, $ticketId, $data)
     {
-        $this->getConfig();
+        $urlGlpi = $this->getUriBase() . 'Ticket/' . $ticketId . '/Ticket_User';
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->configData['host'] . '/apirest.php/ticket/' . $ticketId . '/Ticket_User');
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'GLPI API Client');
-        curl_setopt($ch, CURLOPT_HEADER, TRUE);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Expect:',
-            'app_token: ' . $this->configData['app_token'],
-            'session_token: ' . $sessionToken,
-            'session-token: ' . $sessionToken
-        ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-        $result = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $ch = $this->initCurlSessionPost($urlGlpi, $data, $sessionToken); 
+       
+        $result = $this->execCurl($ch);
 
-        if ($code != 200 && $code != 201) {
-            throw new Exception('Unable to create ticket: ' . $result);
-        }
+        $this->validateStatusCode($result, 'Unable add User on ticket: ' . $ticketId);
 
-        $ticket_id = (int) $result;
+        $ticket_id = (int) $result['result'];
 
         //$this->killSession($sessionToken);
 
@@ -133,29 +181,22 @@ class erLhcoreClassExtensionGlpiticket
 
     public function initSession()
     {
-        $this->getConfig();
+        $urlGlpi = $this->getUriBase() . 'initSession';
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->configData['host'] . '/apirest.php/initSession');
-        curl_setopt($ch, CURLOPT_HTTPGET, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'GLPI API Client');
-        curl_setopt($ch, CURLOPT_HEADER, 0);
+        $ch = $this->initCurl($urlGlpi);        
+        curl_setopt($ch, CURLOPT_HTTPGET, 1);   
         curl_setopt($ch, CURLOPT_HTTPHEADER, array(
             'Expect:',
             'app_token: ' . $this->configData['app_token'],
+            'app-token: ' . $this->configData['app_token'],
             'Authorization: user_token '. $this->configData['user_token'],
         ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        $result = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
 
-        if ($code != 200 && $code != 201) {
-            throw new Exception('Unable to create session_token: ' . $result . $code);
-        }
+        $result = $this->execCurl($ch);      
 
-        $token = json_decode($result);
+        $this->validateStatusCode($result, 'Unable to create session_token:');
+
+        $token = json_decode($result['result']);
         $sessionToken = $token->session_token;  
 
         $this->userId = $this->getFullSession($sessionToken);
@@ -165,54 +206,24 @@ class erLhcoreClassExtensionGlpiticket
 
     public function killSession($sessionToken)
     {
-        $this->getConfig();
+        $urlGlpi = $this->getUriBase() . 'killSession';
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->configData['host'] . '/apirest.php/killSession');
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'GLPI API Client');
-        curl_setopt($ch, CURLOPT_HEADER, TRUE);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Expect:',
-            'app_token: ' . $this->configData['app_token'],
-            'session-token: ' . $sessionToken,
-            'session-token: ' . $sessionToken
-        ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        $result = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-
-        return $code;
+        $ch = $this->initCurlSessionGet($urlGlpi, $sessionToken);        
+        $result = $this->execCurl($ch);
+        
+        return $result['code'];
     }
 
     public function getFullSession($sessionToken)
     {
-        $this->getConfig();
+        $urlGlpi = $this->getUriBase() . 'getFullSession';
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->configData['host'] . '/apirest.php/getFullSession');
-        curl_setopt($ch, CURLOPT_HTTPGET, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'GLPI API Client');
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-            'Expect:',
-            'app_token: ' . $this->configData['app_token'],
-            'session_token: ' . $sessionToken,
-            'session-token: ' . $sessionToken
-        ));
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, FALSE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
-        $result = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $ch = $this->initCurlSessionGet($urlGlpi, $sessionToken);         
+        $result = $this->execCurl($ch);      
 
-        if ($code != 200 && $code != 201) {
-            throw new Exception('Unable to create session_token: ' . $result);
-        }
+        $this->validateStatusCode($result, 'Unable to get Session:');
 
-        $session = json_decode($result);
+        $session = json_decode($result['result']);
 
         return $session->session->glpiID;
     }
@@ -458,4 +469,5 @@ class erLhcoreClassExtensionGlpiticket
             }
         }
     }
+    
 }

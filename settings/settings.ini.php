@@ -5,12 +5,13 @@ return array(
     'user_token' => '',
     'host' => 'http://example.com',    
     'is_html_body' => true,
+    'disable_ssl_verify' => true,  
     'throw_exceptions' => true,        // Set to true while debuging
-    'create_duplicate_issues' => false, // If chat was already created on osTicket we won't create an issue again
+    'create_duplicate_issues' => false, // If chat was already created on Ticket we won't create an issue again
     'createissuecallbacks' => array (
         'chat_close'        => true,    // Create issue automatically then chat is closed
         'offline_request'   => true,    // Create issue automatically then offline request is send from user
-        //'chat_create'       => true,    // Create issue automatically then chat is created
+        'chat_create'       => true,    // Create issue automatically then chat is created
     ),
     
 /**
@@ -23,7 +24,7 @@ return array(
     'subject' => 'New ticket from LHC {nick} {email} {country_code} {country_name} {city} {user_tz_identifier}',        
     
 /**
- * Message template for osTicket if ticket are created from chat
+ * Message template for Glpi if ticket are created from chat
  * */
 'message' => 
 'Chat ID - {id}
