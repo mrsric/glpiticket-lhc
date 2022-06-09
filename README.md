@@ -64,7 +64,7 @@ Administração -> Usuarios
 ## Utilização
 
 * Exemplo criação e e leitura do chamado.
-![Alt Text](./doc/LHC - Extension GLPI.gif)
+![exemplo](./doc/LHC%20-%20Extension%20GLPI.gif)
 
 ## Referências
 

@@ -33,7 +33,11 @@ endif; ?>
 
     <div class="form-group">
         <label><?php echo erTranslationClassLhTranslation::getInstance()->getTranslation('module/glpiticket', 'Host'); ?></label>
-        <input type="text" class="form-control" placeholder="http://example.com" name="host" value="<?php echo (isset($data['host']) && !empty($data['host'])) ? htmlspecialchars($data['host']) : 'http://example.com//apirest.php' ?>" />
+        <input type="text" class="form-control" placeholder="http://example.com" name="host" value="<?php echo (isset($data['host']) && !empty($data['host'])) ? htmlspecialchars($data['host']) : 'http://glpi.example.com' ?>" />
+    </div>
+
+    <div class="form-group">
+        <label><input type="checkbox" value="on" name="disable_ssl_verify" <?php echo isset($data['disable_ssl_verify']) && $data[''] == true ? 'checked="checked"' : '' ?> /> <?php echo erTranslationClassLhTranslation::getInstance()->getTranslation('module/glpiticket', 'Disable SSL verify') ?></label>
     </div>
 
     <div class="form-group">

@@ -57,6 +57,10 @@
       <translation>Habilitar extensão</translation>
     </message>
     <message>
+      <source> Disable SSL verify</source>
+      <translation>Desativar verificação SSL</translation>
+    </message>
+    <message>
       <source> Throw exceptions, usefull debug mode</source>
       <translation>Lançar exceções no modo de depuração</translation>
     </message>

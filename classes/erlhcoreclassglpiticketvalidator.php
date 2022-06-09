@@ -41,6 +41,10 @@ class erLhcoreClassGLPITicketValidator
                 ezcInputFormDefinitionElement::OPTIONAL,
                 'unsafe_raw'
             ),
+            'disable_ssl_verify' => new ezcInputFormDefinitionElement(
+                ezcInputFormDefinitionElement::OPTIONAL,
+                'boolean'
+            ),
             'throw_exceptions' => new ezcInputFormDefinitionElement(
                 ezcInputFormDefinitionElement::OPTIONAL,
                 'boolean'
@@ -132,6 +136,12 @@ class erLhcoreClassGLPITicketValidator
             $data['message_offline'] = $form->message_offline;
         } else {
             $Errors[] =  erTranslationClassLhTranslation::getInstance()->getTranslation('xmppservice/operatorvalidator', 'Please enter offline message!');
+        }
+
+        if ($form->hasValidData('disable_ssl_verify') && $form->disable_ssl_verify == true) {
+            $data['disable_ssl_verify'] = true;
+        } else {
+            $data['disable_ssl_verify'] = false;
         }
 
         if ($form->hasValidData('throw_exceptions') && $form->throw_exceptions == true) {
