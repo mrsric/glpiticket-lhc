@@ -37,7 +37,7 @@ endif; ?>
     </div>
 
     <div class="form-group">
-        <label><input type="checkbox" value="on" name="disable_ssl_verify" <?php echo isset($data['disable_ssl_verify']) && $data[''] == true ? 'checked="checked"' : '' ?> /> <?php echo erTranslationClassLhTranslation::getInstance()->getTranslation('module/glpiticket', 'Disable SSL verify') ?></label>
+        <label><input type="checkbox" value="on" name="disable_ssl_verify" <?php echo isset($data['disable_ssl_verify']) && $data['disable_ssl_verify'] == true ? 'checked="checked"' : '' ?> /> <?php echo erTranslationClassLhTranslation::getInstance()->getTranslation('module/glpiticket', 'Disable SSL verify') ?></label>
     </div>
 
     <div class="form-group">
